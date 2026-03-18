@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theme Switch Test Page</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #111827;
+        --panel: #f3f4f6;
+        --border: #d1d5db;
+        --accent: #2563eb;
+        --muted: #6b7280;
+        --shadow: rgba(37, 99, 235, 0.12);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111827;
+          --fg: #f9fafb;
+          --panel: #1f2937;
+          --border: #374151;
+          --accent: #f59e0b;
+          --muted: #9ca3af;
+          --shadow: rgba(245, 158, 11, 0.18);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font: 16px/1.5 system-ui, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 24px;
+      }
+
+      .intro {
+        margin-bottom: 24px;
+      }
+
+      .intro p {
+        max-width: 60ch;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .panel {
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: 0 16px 40px var(--shadow);
+      }
+
+      .panel h2 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+      }
+
+      .panel p {
+        margin: 0;
+      }
+
+      .theme-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        margin-top: 16px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .light-only,
+      .dark-only {
+        display: none;
+      }
+
+      .contrast-demo {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .contrast-swatch {
+        flex: 1;
+        min-height: 72px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+
+      .contrast-swatch.primary {
+        background: linear-gradient(135deg, var(--accent), var(--panel));
+      }
+
+      .contrast-swatch.secondary {
+        background: linear-gradient(135deg, var(--bg), var(--border));
+      }
+
+      .status {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-left: 4px solid var(--accent);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      @media (prefers-color-scheme: light) {
+        .light-only {
+          display: block;
+        }
+
+        .theme-chip::after {
+          content: "Light mode active";
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .dark-only {
+          display: block;
+        }
+
+        .theme-chip::after {
+          content: "Dark mode active";
+        }
+
+        .status {
+          background: rgba(245, 158, 11, 0.08);
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding: 32px 16px;
+        }
+
+        .contrast-demo {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="intro">
+        <h1>Theme Switch Test Page</h1>
+        <p>
+          This page changes only through
+          <code>@media (prefers-color-scheme: dark)</code>. Use the extension
+          button to verify color changes, conditional visibility, and component
+          styling.
+        </p>
+        <span class="theme-chip"></span>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Global palette</h2>
+          <p>
+            The page background, text, borders, and card surfaces should switch
+            immediately when the emulated color scheme changes.
+          </p>
+          <div class="contrast-demo">
+            <div class="contrast-swatch primary"></div>
+            <div class="contrast-swatch secondary"></div>
+          </div>
+        </article>
+
+        <article class="panel light-only">
+          <h2>Visible only in light theme</h2>
+          <p>
+            This block should appear only when the tab is forced to light mode.
+          </p>
+        </article>
+
+        <article class="panel dark-only">
+          <h2>Visible only in dark theme</h2>
+          <p>
+            This block should appear only when the tab is forced to dark mode.
+          </p>
+        </article>
+
+        <article class="panel">
+          <h2>Stateful component</h2>
+          <p>
+            This notice keeps the same layout but changes accent and background
+            treatment with the active media query.
+          </p>
+          <div class="status">
+            If the extension is working, this callout should feel blue in light
+            mode and amber in dark mode.
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

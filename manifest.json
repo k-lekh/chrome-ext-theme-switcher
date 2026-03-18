@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Theme Switch",
+  "version": "1.0.0",
+  "description": "Toggle the active tab between dark and light color scheme modes.",
+  "permissions": ["activeTab", "debugger", "storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Switch site theme"
+  }
+}
