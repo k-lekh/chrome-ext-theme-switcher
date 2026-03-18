@@ -7,17 +7,36 @@
 const DEBUGGER_VERSION = "1.3";
 const STORAGE_KEY = "themeModesByTabId";
 const MODE_SEQUENCE = ["dark", "light"];
-const BADGE_TEXT_BY_MODE = {
-  dark: "D",
-  light: "L"
-};
-const BADGE_COLOR_BY_MODE = {
-  dark: "#111827",
-  light: "#6b7280"
+const ICON_SIZES = [16, 32];
+const ICON_STYLE_BY_MODE = {
+  dark: {
+    kind: "solid",
+    fill: "#111111",
+    stroke: "#f9fafb"
+  },
+  light: {
+    kind: "solid",
+    fill: "#ffffff",
+    stroke: "#111111"
+  },
+  neutral: {
+    kind: "quartered",
+    dark: "#111111",
+    light: "#ffffff",
+    stroke: "#111111"
+  }
 };
 
 const attachedTabs = new Set();
 const intentionalDetachTabs = new Set();
+
+chrome.runtime.onInstalled.addListener(async () => {
+  await setIndicator();
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  await setIndicator();
+});
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !isSupportedUrl(tab.url)) {
@@ -31,7 +50,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   try {
     await applyModeToTab(tab.id, nextMode);
     await setStoredMode(tab.id, nextMode);
-    await updateBadge(tab.id, nextMode);
+    await setIndicator(tab.id, nextMode);
   } catch (error) {
     console.debug("Theme Switch: failed to switch mode", error);
   }
@@ -55,7 +74,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
   try {
     await applyModeToTab(tabId, mode);
-    await updateBadge(tabId, mode);
+    await setIndicator(tabId, mode);
   } catch (error) {
     console.debug("Theme Switch: failed to reapply mode", error);
   }
@@ -80,7 +99,7 @@ chrome.debugger.onDetach.addListener(async (source) => {
   }
 
   await clearStoredMode(tabId);
-  await clearBadge(tabId);
+  await clearIndicator(tabId);
 });
 
 /**
@@ -204,23 +223,33 @@ async function clearStoredMode(tabId) {
  * @param {number} tabId
  * @param {ThemeMode} mode
  */
-async function updateBadge(tabId, mode) {
-  await chrome.action.setBadgeText({
-    tabId,
-    text: BADGE_TEXT_BY_MODE[mode]
-  });
+async function setIndicator(tabId, mode) {
+  const iconStyle = mode ? ICON_STYLE_BY_MODE[mode] : ICON_STYLE_BY_MODE.neutral;
+  const imageData = buildIconImageData(iconStyle);
 
-  await chrome.action.setBadgeBackgroundColor({
-    tabId,
-    color: BADGE_COLOR_BY_MODE[mode]
-  });
+  await chrome.action.setIcon(
+    tabId
+      ? {
+          tabId,
+          imageData
+        }
+      : {
+          imageData
+        }
+  );
+
+  if (tabId) {
+    await chrome.action.setBadgeText({ tabId, text: "" });
+  } else {
+    await chrome.action.setBadgeText({ text: "" });
+  }
 }
 
 /**
  * @param {number} tabId
  */
-async function clearBadge(tabId) {
-  await chrome.action.setBadgeText({ tabId, text: "" });
+async function clearIndicator(tabId) {
+  await setIndicator(tabId);
 }
 
 /**
@@ -228,8 +257,72 @@ async function clearBadge(tabId) {
  */
 async function clearTabState(tabId) {
   await clearStoredMode(tabId);
-  await clearBadge(tabId);
+  await clearIndicator(tabId);
   await detachDebugger(tabId);
+}
+
+/**
+ * @param {{ kind: string, stroke: string, fill?: string, dark?: string, light?: string }} style
+ */
+function buildIconImageData(style) {
+  return Object.fromEntries(
+    ICON_SIZES.map((size) => [size, drawIcon(size, style)])
+  );
+}
+
+/**
+ * @param {number} size
+ * @param {{ kind: string, stroke: string, fill?: string, dark?: string, light?: string }} style
+ */
+function drawIcon(size, style) {
+  const canvas = new OffscreenCanvas(size, size);
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Theme Switch: failed to get icon canvas context");
+  }
+
+  context.clearRect(0, 0, size, size);
+
+  context.lineWidth = Math.max(1.5, size * 0.09);
+  const radius = size / 2 - context.lineWidth / 2 - 0.25;
+  const center = size / 2;
+
+  context.save();
+  context.beginPath();
+  context.arc(center, center, radius, 0, Math.PI * 2);
+  context.clip();
+
+  if (style.kind === "quartered") {
+    const startAngle = 0;
+    const colors = [style.dark, style.light, style.dark, style.light];
+
+    for (let index = 0; index < colors.length; index += 1) {
+      context.beginPath();
+      context.moveTo(center, center);
+      context.arc(
+        center,
+        center,
+        radius,
+        startAngle + index * (Math.PI / 2),
+        startAngle + (index + 1) * (Math.PI / 2)
+      );
+      context.closePath();
+      context.fillStyle = colors[index];
+      context.fill();
+    }
+  } else {
+    context.fillStyle = style.fill;
+    context.fillRect(0, 0, size, size);
+  }
+  context.restore();
+
+  context.beginPath();
+  context.arc(center, center, radius, 0, Math.PI * 2);
+  context.strokeStyle = style.stroke;
+  context.stroke();
+
+  return context.getImageData(0, 0, size, size);
 }
 
 /**
